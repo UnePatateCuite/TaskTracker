@@ -20,9 +20,9 @@ In the task editor, choose **Today** for the current date or use the calendar bu
 
 ## Linux Mint Cinnamon desktop desklet
 
-The optional Cinnamon desklet sits directly on your desktop. It shows your open tasks and count, supports quick add and one-click completion, and opens the full TaskTracker window. It uses the same local SQLite database as the desktop app and CLI.
+The optional Cinnamon desklet sits directly on your desktop. It shows up to three open tasks and their count, provides a clear **Done** control for completing tasks, and opens the full TaskTracker window. It uses the same local SQLite database as the desktop app and CLI; add tasks from the full app or command line.
 
-Right-click the desklet and choose **Configure…** to adjust background opacity (transparent to opaque) and corner roundness (square to rounded). Changes apply immediately.
+Right-click the desklet and choose **Configure…** to adjust background opacity (transparent to opaque), corner roundness (square to rounded), text color, and font. Changes apply immediately. Use the **Done** button beside a task to complete it.
 
 Install the desklet:
 

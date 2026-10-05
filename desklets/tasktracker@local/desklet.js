@@ -2,11 +2,12 @@ const Desklet = imports.ui.desklet;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
+const Pango = imports.gi.Pango;
 const St = imports.gi.St;
 const Main = imports.ui.main;
 const Settings = imports.ui.settings;
 
-const MAX_VISIBLE_TASKS = 6;
+const MAX_VISIBLE_TASKS = 3;
 const REFRESH_SECONDS = 30;
 const COLORS = {
     background: "#ffffff",
@@ -31,9 +32,14 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         this.refreshSourceId = 0;
         this.background_opacity = 92;
         this.corner_radius = 18;
+        this.text_color = COLORS.ink;
+        this.font = "Sans 11";
+        this.removed = false;
         this.settings = new Settings.DeskletSettings(this, metadata.uuid, deskletId);
         this.settings.bind("background-opacity", "background_opacity", this._onAppearanceChanged);
         this.settings.bind("corner-radius", "corner_radius", this._onAppearanceChanged);
+        this.settings.bind("text-color", "text_color", this._onAppearanceChanged);
+        this.settings.bind("font", "font", this._onAppearanceChanged);
         this.setHeader("TaskTracker");
         this._buildContent();
         this._applyAppearance();
@@ -53,49 +59,34 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         });
 
         const heading = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
-        const title = new St.Label({
+        this.headingLabel = new St.Label({
             text: "Your tasks",
-            style: `font-size: 15px; font-weight: bold; color: ${COLORS.ink};`
+            style: `font-size: 15px; font-weight: bold; color: ${this.text_color};`
         });
-        heading.add_child(title);
+        heading.add_child(this.headingLabel);
         this.countLabel = new St.Label({
             text: "…",
-            style: `font-size: 11px; color: ${COLORS.muted};`
+            style: `font-size: 11px; color: ${this.text_color};`
         });
         heading.add_child(this.countLabel);
         this.container.add_child(heading);
 
         this.messageLabel = new St.Label({
             text: "Loading your tasks…",
-            style: `font-size: 11px; color: ${COLORS.muted};`
+            style: `font-size: 11px; color: ${this.text_color};`
         });
         this.container.add_child(this.messageLabel);
 
         this.taskList = new St.BoxLayout({ vertical: true, style: "spacing: 5px;" });
         this.container.add_child(this.taskList);
         this.taskRows = [];
+        this.taskTextLabels = [];
+        this.taskMetaLabels = [];
+        this.doneLabels = [];
 
-        const addRow = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
-        this.addEntry = new St.Entry({
-            hint_text: "Add a task…",
-            can_focus: true,
-            style: `min-width: 220px; padding: 8px; border-radius: 10px;` +
-                `background-color: ${COLORS.background}; color: ${COLORS.ink};`
-        });
-        this.addEntry.clutter_text.connect("activate", () => this._addTask());
-        addRow.add_child(this.addEntry);
-        this.addButton = new St.Button({
-            label: "Add",
-            can_focus: true,
-            style: `padding: 7px 11px; border-radius: 10px;` +
-                `background-color: ${COLORS.greenSoft}; color: ${COLORS.green}; font-weight: bold;`
-        });
-        this.addButton.connect("clicked", () => this._addTask());
-        addRow.add_child(this.addButton);
-        this.container.add_child(addRow);
-
+        this.openAppLabel = new St.Label({ text: "Open full TaskTracker" });
         this.openAppButton = new St.Button({
-            label: "Open full TaskTracker",
+            child: this.openAppLabel,
             can_focus: true,
             style: `padding: 7px; border-radius: 10px; color: ${COLORS.muted};`
         });
@@ -114,30 +105,33 @@ class TaskTrackerDesklet extends Desklet.Desklet {
     _applyAppearance() {
         const opacity = Math.max(0, Math.min(100, Number(this.background_opacity))) / 100;
         const radius = Math.max(0, Math.min(36, Number(this.corner_radius)));
-        const cardRadius = Math.round(radius * 0.67);
         const controlRadius = Math.round(radius * 0.56);
         const softAlpha = opacity * 0.42;
+        const description = Pango.FontDescription.from_string(this.font || "Sans 11");
+        const family = (description.get_family() || "Sans")
+            .replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const fontSize = Math.max(7, Math.min(48, description.get_size() / Pango.SCALE || 11));
+        const fontStyle = `font-family: '${family}'; color: ${this.text_color};`;
         this.container.set_style(
             "width: 340px; padding: 16px; spacing: 10px;" +
             `background-color: rgba(255, 255, 255, ${opacity.toFixed(2)});` +
             `border: 1px solid ${COLORS.line}; border-radius: ${radius}px;`
         );
-        this.addEntry.set_style(
-            `min-width: 220px; padding: 8px; border-radius: ${controlRadius}px;` +
-            `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
-        );
-        this.addButton.set_style(
-            `padding: 7px 11px; border-radius: ${controlRadius}px;` +
-            `background-color: ${COLORS.greenSoft}; color: ${COLORS.green}; font-weight: bold;`
-        );
         this.openAppButton.set_style(
-            `padding: 7px; border-radius: ${controlRadius}px; color: ${COLORS.muted};`
+            `padding: 7px; border-radius: ${controlRadius}px;`
         );
-        for (const row of this.taskRows || []) {
-            row.set_style(
-                `padding: 9px 10px; border-radius: ${cardRadius}px;` +
-                `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
-            );
+        this.openAppLabel.set_style(`font-size: ${fontSize}pt; ${fontStyle}`);
+        this.headingLabel.set_style(`font-size: ${fontSize + 4}pt; font-weight: bold; ${fontStyle}`);
+        this.countLabel.set_style(`font-size: ${fontSize}pt; ${fontStyle}`);
+        this.messageLabel.set_style(`font-size: ${fontSize - 1}pt; ${fontStyle}`);
+        for (const label of this.taskTextLabels || []) {
+            label.set_style(`font-size: ${fontSize}pt; ${fontStyle}`);
+        }
+        for (const label of this.taskMetaLabels || []) {
+            label.set_style(`font-size: ${Math.max(7, fontSize - 2)}pt; ${fontStyle}`);
+        }
+        for (const label of this.doneLabels || []) {
+            label.set_style(`font-size: ${fontSize}pt; ${fontStyle} font-weight: bold;`);
         }
     }
 
@@ -183,73 +177,66 @@ class TaskTrackerDesklet extends Desklet.Desklet {
 
     _renderTasks(tasks, openCount) {
         this.countLabel.set_text(`${openCount} to do`);
-        this.messageLabel.set_text(openCount === 0 ? "You’re all caught up." : "Click a task to mark it done.");
+        this.messageLabel.set_text(openCount === 0 ? "You’re all caught up." : "Use Done to close a task.");
         for (const child of this.taskList.get_children()) {
             this.taskList.remove_child(child);
         }
         this.taskRows = [];
+        this.taskTextLabels = [];
+        this.taskMetaLabels = [];
+        this.doneLabels = [];
 
         for (const task of tasks.slice(0, MAX_VISIBLE_TASKS)) {
             const row = this._createTaskRow(task);
-            this.taskRows.push(row);
-            this.taskList.add_child(row);
+            this.taskRows.push(row.container);
+            this.taskList.add_child(row.container);
         }
         if (tasks.length > MAX_VISIBLE_TASKS) {
-            this.taskList.add_child(new St.Label({
+            const moreLabel = new St.Label({
                 text: `${tasks.length - MAX_VISIBLE_TASKS} more tasks…`,
-                style: `padding: 4px; color: ${COLORS.muted}; font-size: 10px;`
-            }));
+                style: `padding: 4px; color: ${this.text_color}; font-size: 10px;`
+            });
+            this.taskMetaLabels.push(moreLabel);
+            this.taskList.add_child(moreLabel);
         }
+        this._applyAppearance();
     }
 
     _createTaskRow(task) {
         const due = task.due_date ? ` · ${task.due_date}` : "";
-        const priorityColor = task.priority === "high" ? COLORS.red :
-            task.priority === "medium" ? COLORS.amber : COLORS.green;
         const opacity = Math.max(0, Math.min(100, Number(this.background_opacity))) / 100;
         const softAlpha = opacity * 0.42;
         const radius = Math.round(Math.max(0, Math.min(36, Number(this.corner_radius))) * 0.67);
-        const row = new St.Button({
-            can_focus: true,
-            reactive: true,
+        const row = new St.BoxLayout({
+            vertical: false,
             style: `padding: 9px 10px; border-radius: ${radius}px;` +
-                `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
+                `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)});`
         });
         const contents = new St.BoxLayout({ vertical: true, style: "spacing: 3px;" });
-        contents.add_child(new St.Label({
+        const titleLabel = new St.Label({
             text: `○  ${task.title}`,
-            style: `font-size: 11px; color: ${COLORS.ink};`
-        }));
-        contents.add_child(new St.Label({
-            text: `${task.priority.toUpperCase()}${due}`,
-            style: `font-size: 9px; color: ${priorityColor};`
-        }));
-        row.set_child(contents);
-        row.connect("clicked", () => this._completeTask(task.id));
-        return row;
-    }
-
-    _addTask() {
-        const title = this.addEntry.get_text().trim();
-        if (!title) {
-            this.addEntry.grab_key_focus();
-            return;
-        }
-        const requestId = ++this.requestId;
-        this.addButton.set_label("Saving…");
-        this.addButton.set_reactive(false);
-        this._runBridge(["add", title], (result, error) => {
-            this.addButton.set_label("Add");
-            this.addButton.set_reactive(true);
-            if (error) {
-                Main.notifyError("TaskTracker", error);
-                return;
-            }
-            this.addEntry.set_text("");
-            if (requestId === this.requestId) {
-                this._refresh();
-            }
+            style: `font-size: 11px; color: ${this.text_color};`
         });
+        this.taskTextLabels.push(titleLabel);
+        contents.add_child(titleLabel);
+        const metaLabel = new St.Label({
+            text: `${task.priority.toUpperCase()}${due}`,
+            style: `font-size: 9px; color: ${this.text_color};`
+        });
+        this.taskMetaLabels.push(metaLabel);
+        contents.add_child(metaLabel);
+        row.add_child(contents, { expand: true });
+        const doneLabel = new St.Label({ text: "Done" });
+        this.doneLabels.push(doneLabel);
+        const doneButton = new St.Button({
+            child: doneLabel,
+            can_focus: true,
+            style: `padding: 6px 10px; border-radius: ${Math.round(radius * 0.65)}px;` +
+                `background-color: ${COLORS.greenSoft}; color: ${COLORS.green}; font-weight: bold;`
+        });
+        doneButton.connect("clicked", () => this._completeTask(task.id));
+        row.add_child(doneButton);
+        return { container: row };
     }
 
     _completeTask(taskId) {
@@ -274,6 +261,7 @@ class TaskTrackerDesklet extends Desklet.Desklet {
     }
 
     on_desklet_removed() {
+        this.removed = true;
         this.requestId++;
         if (this.refreshSourceId) {
             Mainloop.source_remove(this.refreshSourceId);

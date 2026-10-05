@@ -16,5 +16,15 @@
     "step": 1,
     "units": "px",
     "description": "Corner roundness (0 is square, 36 is rounded)"
+  },
+  "text-color": {
+    "type": "colorchooser",
+    "default": "rgb(32, 43, 39)",
+    "description": "Task text color"
+  },
+  "font": {
+    "type": "fontchooser",
+    "default": "Sans 11",
+    "description": "Desklet font"
   }
 }
