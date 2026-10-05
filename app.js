@@ -59,8 +59,15 @@ function formatDate(value) {
   return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function localDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function isOverdue(task) {
-  return Boolean(task.dueDate && !task.completed && task.dueDate < new Date().toLocaleDateString("en-CA"));
+  return Boolean(task.dueDate && !task.completed && task.dueDate < localDateString());
 }
 
 function createTaskCard(task) {
@@ -122,7 +129,7 @@ function render() {
     .filter((task) => activeStatus === "all" || (activeStatus === "completed" ? task.completed : !task.completed))
     .filter((task) => priority === "all" || task.priority === priority)
     .filter((task) => !query || `${task.title} ${task.description || ""}`.toLocaleLowerCase().includes(query))
-    .sort((a, b) => Number(a.completed) - Number(b.completed) || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || b.createdAt - a.createdAt);
+    .sort((a, b) => Number(a.completed) - Number(b.completed) || (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31") || Number(b.createdAt || 0) - Number(a.createdAt || 0));
 
   elements.list.replaceChildren();
   if (!visibleTasks.length) {
@@ -172,7 +179,8 @@ elements.form.addEventListener("submit", (event) => {
   if (editingId) {
     tasks = tasks.map((task) => task.id === editingId ? { ...task, ...values } : task);
   } else {
-    tasks.push({ id: crypto.randomUUID(), ...values, completed: false, createdAt: Date.now() });
+    const id = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    tasks.push({ id, ...values, completed: false, createdAt: Date.now() });
   }
   saveTasks();
   closeForm();
