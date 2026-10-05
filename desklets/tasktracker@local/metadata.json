@@ -3,7 +3,7 @@
   "name": "TaskTracker",
   "description": "A desktop task list with quick add and completion",
   "icon": "view-list-symbolic",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "max-instances": "4",
-  "prevent-decorations": false
+  "prevent-decorations": true
 }

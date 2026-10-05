@@ -22,6 +22,8 @@ In the task editor, choose **Today** for the current date or use the calendar bu
 
 The optional Cinnamon desklet sits directly on your desktop. It shows your open tasks and count, supports quick add and one-click completion, and opens the full TaskTracker window. It uses the same local SQLite database as the desktop app and CLI.
 
+Right-click the desklet and choose **Configure…** to adjust background opacity (transparent to opaque) and corner roundness (square to rounded). Changes apply immediately.
+
 Install the desklet:
 
 ```sh

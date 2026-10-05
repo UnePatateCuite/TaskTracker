@@ -4,6 +4,7 @@ const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 const St = imports.gi.St;
 const Main = imports.ui.main;
+const Settings = imports.ui.settings;
 
 const MAX_VISIBLE_TASKS = 6;
 const REFRESH_SECONDS = 30;
@@ -28,8 +29,14 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         this.tasktrackerPath = GLib.build_filenamev([metadata.path, "tasktracker.py"]);
         this.requestId = 0;
         this.refreshSourceId = 0;
+        this.background_opacity = 92;
+        this.corner_radius = 18;
+        this.settings = new Settings.DeskletSettings(this, metadata.uuid, deskletId);
+        this.settings.bind("background-opacity", "background_opacity", this._onAppearanceChanged);
+        this.settings.bind("corner-radius", "corner_radius", this._onAppearanceChanged);
         this.setHeader("TaskTracker");
         this._buildContent();
+        this._applyAppearance();
         this._refresh();
         this.refreshSourceId = Mainloop.timeout_add_seconds(REFRESH_SECONDS, () => {
             this._refresh();
@@ -66,6 +73,7 @@ class TaskTrackerDesklet extends Desklet.Desklet {
 
         this.taskList = new St.BoxLayout({ vertical: true, style: "spacing: 5px;" });
         this.container.add_child(this.taskList);
+        this.taskRows = [];
 
         const addRow = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
         this.addEntry = new St.Entry({
@@ -86,14 +94,51 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         addRow.add_child(this.addButton);
         this.container.add_child(addRow);
 
-        const openApp = new St.Button({
+        this.openAppButton = new St.Button({
             label: "Open full TaskTracker",
             can_focus: true,
             style: `padding: 7px; border-radius: 10px; color: ${COLORS.muted};`
         });
-        openApp.connect("clicked", () => this._openDesktopApp());
-        this.container.add_child(openApp);
+        this.openAppButton.connect("clicked", () => this._openDesktopApp());
+        this.container.add_child(this.openAppButton);
         this.setContent(this.container);
+    }
+
+    _onAppearanceChanged() {
+        this._applyAppearance();
+        if (this.taskList) {
+            this._refresh();
+        }
+    }
+
+    _applyAppearance() {
+        const opacity = Math.max(0, Math.min(100, Number(this.background_opacity))) / 100;
+        const radius = Math.max(0, Math.min(36, Number(this.corner_radius)));
+        const cardRadius = Math.round(radius * 0.67);
+        const controlRadius = Math.round(radius * 0.56);
+        const softAlpha = opacity * 0.42;
+        this.container.set_style(
+            "width: 340px; padding: 16px; spacing: 10px;" +
+            `background-color: rgba(255, 255, 255, ${opacity.toFixed(2)});` +
+            `border: 1px solid ${COLORS.line}; border-radius: ${radius}px;`
+        );
+        this.addEntry.set_style(
+            `min-width: 220px; padding: 8px; border-radius: ${controlRadius}px;` +
+            `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
+        );
+        this.addButton.set_style(
+            `padding: 7px 11px; border-radius: ${controlRadius}px;` +
+            `background-color: ${COLORS.greenSoft}; color: ${COLORS.green}; font-weight: bold;`
+        );
+        this.openAppButton.set_style(
+            `padding: 7px; border-radius: ${controlRadius}px; color: ${COLORS.muted};`
+        );
+        for (const row of this.taskRows || []) {
+            row.set_style(
+                `padding: 9px 10px; border-radius: ${cardRadius}px;` +
+                `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
+            );
+        }
     }
 
     _runBridge(args, callback) {
@@ -142,9 +187,12 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         for (const child of this.taskList.get_children()) {
             this.taskList.remove_child(child);
         }
+        this.taskRows = [];
 
         for (const task of tasks.slice(0, MAX_VISIBLE_TASKS)) {
-            this.taskList.add_child(this._createTaskRow(task));
+            const row = this._createTaskRow(task);
+            this.taskRows.push(row);
+            this.taskList.add_child(row);
         }
         if (tasks.length > MAX_VISIBLE_TASKS) {
             this.taskList.add_child(new St.Label({
@@ -158,11 +206,14 @@ class TaskTrackerDesklet extends Desklet.Desklet {
         const due = task.due_date ? ` · ${task.due_date}` : "";
         const priorityColor = task.priority === "high" ? COLORS.red :
             task.priority === "medium" ? COLORS.amber : COLORS.green;
+        const opacity = Math.max(0, Math.min(100, Number(this.background_opacity))) / 100;
+        const softAlpha = opacity * 0.42;
+        const radius = Math.round(Math.max(0, Math.min(36, Number(this.corner_radius))) * 0.67);
         const row = new St.Button({
             can_focus: true,
             reactive: true,
-            style: `padding: 9px 10px; border-radius: 12px;` +
-                `background-color: ${COLORS.background}; color: ${COLORS.ink};`
+            style: `padding: 9px 10px; border-radius: ${radius}px;` +
+                `background-color: rgba(244, 246, 245, ${softAlpha.toFixed(2)}); color: ${COLORS.ink};`
         });
         const contents = new St.BoxLayout({ vertical: true, style: "spacing: 3px;" });
         contents.add_child(new St.Label({
