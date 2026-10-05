@@ -4,13 +4,15 @@ A small, dependency-free task tracker that runs entirely in your browser. Your t
 
 ## Run locally
 
-Open `index.html` in a modern browser. You can also serve the folder locally:
+Open `index.html` in a modern browser. Or, from the project folder, serve the app locally:
 
 ```sh
+cd ~/Documents/TaskTracker/TaskTracker
 python3 -m http.server 8000
 ```
 
 Then open [http://localhost:8000](http://localhost:8000).
+If port 8000 is already in use, choose another port, such as `8001`, and open [http://localhost:8001](http://localhost:8001).
 
 ## Features
 
