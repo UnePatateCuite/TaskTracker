@@ -16,7 +16,19 @@ From the project folder, launch the desktop app:
 python3 tasktracker.py
 ```
 
-In the task editor, choose **Today** for the current date or use the calendar button to pick a date.
+In the task editor, choose **Today** for the current date or use the calendar button to pick a date. In the calendar, use the month and year dropdowns to jump directly to a date, or the arrows to move one month at a time.
+
+## Linux Mint Cinnamon desktop desklet
+
+The optional Cinnamon desklet sits directly on your desktop. It shows your open tasks and count, supports quick add and one-click completion, and opens the full TaskTracker window. It uses the same local SQLite database as the desktop app and CLI.
+
+Install the desklet:
+
+```sh
+bash install-cinnamon-desklet.sh
+```
+
+Then open **System Settings → Desklets → Installed**, select **TaskTracker**, and choose **Add to desktop**. If it does not appear in the list, restart Cinnamon with **Alt+F2**, type `r`, and press Enter. Python 3 must be available on `PATH`. The installer removes the earlier TaskTracker panel-applet files from your user applet folder.
 
 To use the command-line interface instead:
 

@@ -38,6 +38,7 @@ PRIORITY_COLORS = {
 
 MONTH_NAMES = tuple(calendar.month_name)
 WEEKDAY_NAMES = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
+CALENDAR_YEAR_RANGE = 50
 
 
 def rounded_points(width: float, height: float, radius: float) -> tuple[float, ...]:
@@ -202,6 +203,8 @@ class CalendarPicker:
             self.displayed_month = date.fromisoformat(value.get())
         except ValueError:
             self.displayed_month = date.today()
+        self.month_var = tk.StringVar(value=MONTH_NAMES[self.displayed_month.month])
+        self.year_var = tk.StringVar(value=str(self.displayed_month.year))
         self.window = tk.Toplevel(parent)
         self.window.title("Choose a date")
         self.window.configure(background=COLORS["background"])
@@ -216,7 +219,7 @@ class CalendarPicker:
             child.destroy()
         panel = RoundedPanel(
             self.window, background=COLORS["surface"], border=COLORS["line"],
-            radius=18, inset=10, width=270, height=323,
+            radius=18, inset=10, width=360, height=350,
         )
         panel.pack()
         body = panel.body
@@ -230,11 +233,26 @@ class CalendarPicker:
             hover_background=COLORS["green_soft"], width=32, height=30, radius=12,
             font=("TkDefaultFont", 12, "bold"), horizontal_padding=0, vertical_padding=0,
         ).pack(side="left")
-        title = f"{MONTH_NAMES[self.displayed_month.month]} {self.displayed_month.year}"
-        tk.Label(
-            header, text=title, background=COLORS["surface"],
-            foreground=COLORS["ink"], font=("TkDefaultFont", 10, "bold"),
-        ).pack(side="left", expand=True)
+        selectors = tk.Frame(header, background=COLORS["surface"])
+        selectors.pack(side="left", expand=True)
+        month_selector = ttk.Combobox(
+            selectors, textvariable=self.month_var, values=MONTH_NAMES[1:],
+            state="readonly", width=10, style="Calendar.TCombobox",
+        )
+        month_selector.pack(side="left", padx=(5, 3))
+        month_selector.bind("<<ComboboxSelected>>", self._month_year_changed)
+        first_year = max(1, self.displayed_month.year - CALENDAR_YEAR_RANGE)
+        last_year = min(9999, self.displayed_month.year + CALENDAR_YEAR_RANGE)
+        year_selector = ttk.Combobox(
+            selectors,
+            textvariable=self.year_var,
+            values=tuple(str(year) for year in range(first_year, last_year + 1)),
+            state="readonly",
+            width=6,
+            style="Calendar.TCombobox",
+        )
+        year_selector.pack(side="left")
+        year_selector.bind("<<ComboboxSelected>>", self._month_year_changed)
         RoundedButton(
             header, "›", lambda: self._change_month(1),
             background=COLORS["background"], foreground=COLORS["muted"],
@@ -302,11 +320,26 @@ class CalendarPicker:
     def _change_month(self, delta: int) -> None:
         year, month = self.displayed_month.year, self.displayed_month.month + delta
         if month == 0:
+            if year == 1:
+                return
             year, month = year - 1, 12
         elif month == 13:
+            if year == 9999:
+                return
             year, month = year + 1, 1
         self.displayed_month = date(year, month, 1)
         self._draw()
+
+    def _month_year_changed(self, _event: Any = None) -> None:
+        try:
+            month = MONTH_NAMES.index(self.month_var.get())
+            year = int(self.year_var.get())
+            selected_month = date(year, month, 1)
+        except (ValueError, OverflowError):
+            return
+        if selected_month != self.displayed_month:
+            self.displayed_month = selected_month
+            self._draw()
 
     def _select(self, selected: date | None) -> None:
         self.value.set(selected.isoformat() if selected else "")

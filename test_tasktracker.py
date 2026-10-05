@@ -4,6 +4,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from tasktracker import TaskNotFoundError, TaskStore, build_parser
+from tasktracker_desklet_bridge import build_parser as build_bridge_parser
+from tasktracker_desklet_bridge import run as run_bridge
 
 
 class TaskStoreTests(unittest.TestCase):
@@ -55,6 +57,21 @@ class TaskStoreTests(unittest.TestCase):
 
     def test_no_command_selects_desktop_app(self):
         self.assertIsNone(build_parser().parse_args([]).command)
+
+    def test_desklet_bridge_lists_adds_and_completes_tasks(self):
+        args = build_bridge_parser().parse_args(["add", "Panel task"])
+        added = run_bridge(args, self.store)
+        task_id = added["task"]["id"]
+
+        listed = run_bridge(build_bridge_parser().parse_args(["list"]), self.store)
+        self.assertEqual(listed["open_count"], 1)
+        self.assertEqual(listed["tasks"][0]["title"], "Panel task")
+
+        completed = run_bridge(
+            build_bridge_parser().parse_args(["complete", str(task_id)]), self.store
+        )
+        self.assertEqual(completed["task"]["completed"], 1)
+        self.assertEqual(run_bridge(build_bridge_parser().parse_args(["list"]), self.store)["open_count"], 0)
 
 
 if __name__ == "__main__":
