@@ -16,6 +16,8 @@ From the project folder, launch the desktop app:
 python3 tasktracker.py
 ```
 
+In the task editor, choose **Today** for the current date or use the calendar button to pick a date.
+
 To use the command-line interface instead:
 
 ```sh
