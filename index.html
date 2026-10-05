@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f6f8">
+    <title>TaskTracker</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="TaskTracker home">
+          <span class="brand-mark" aria-hidden="true">✓</span>
+          <span>Task<span class="brand-light">Tracker</span></span>
+        </a>
+        <span class="local-badge"><span class="status-dot"></span> Saved on this device</span>
+      </header>
+
+      <section class="welcome">
+        <div>
+          <p class="eyebrow">YOUR PERSONAL WORKSPACE</p>
+          <h1>Make room for <span>what matters.</span></h1>
+          <p class="welcome-copy">A little progress each day adds up to big results.</p>
+        </div>
+        <div class="date-display" id="today-date"></div>
+      </section>
+
+      <section class="stats" aria-label="Task overview">
+        <article class="stat-card">
+          <span class="stat-icon icon-open" aria-hidden="true">◷</span>
+          <div><span class="stat-label">TO DO</span><strong id="open-count">0</strong></div>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon icon-done" aria-hidden="true">✓</span>
+          <div><span class="stat-label">COMPLETED</span><strong id="completed-count">0</strong></div>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon icon-overdue" aria-hidden="true">!</span>
+          <div><span class="stat-label">OVERDUE</span><strong id="overdue-count">0</strong></div>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">STAY ON TOP OF IT</p>
+            <h2>Your tasks</h2>
+          </div>
+          <button class="primary-button" id="add-task-button" type="button"><span aria-hidden="true">＋</span> Add task</button>
+        </div>
+
+        <form class="task-form" id="task-form" hidden>
+          <div class="form-heading">
+            <h3 id="form-title">Add a task</h3>
+            <button class="icon-button" id="close-form" type="button" aria-label="Close form">×</button>
+          </div>
+          <label class="field-label" for="task-name">Task name</label>
+          <input id="task-name" name="title" type="text" maxlength="120" placeholder="e.g. Prepare project proposal" required>
+          <label class="field-label" for="task-description">Description <span class="optional">(optional)</span></label>
+          <textarea id="task-description" name="description" rows="2" maxlength="500" placeholder="Add a few details..."></textarea>
+          <div class="form-row">
+            <div>
+              <label class="field-label" for="task-priority">Priority</label>
+              <select id="task-priority" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="task-due">Due date <span class="optional">(optional)</span></label>
+              <input id="task-due" name="dueDate" type="date">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="secondary-button" id="cancel-form" type="button">Cancel</button>
+            <button class="primary-button" type="submit" id="save-task">Save task</button>
+          </div>
+        </form>
+
+        <div class="toolbar">
+          <div class="filters" role="group" aria-label="Filter tasks by status">
+            <button class="filter-button active" type="button" data-status="all">All <span id="all-tab-count">0</span></button>
+            <button class="filter-button" type="button" data-status="open">To do <span id="todo-tab-count">0</span></button>
+            <button class="filter-button" type="button" data-status="completed">Completed <span id="done-tab-count">0</span></button>
+          </div>
+          <div class="search-filters">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" placeholder="Search tasks..." aria-label="Search tasks">
+            </label>
+            <select id="priority-filter" aria-label="Filter by priority">
+              <option value="all">All priorities</option>
+              <option value="high">High priority</option>
+              <option value="medium">Medium priority</option>
+              <option value="low">Low priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="task-list" id="task-list" aria-live="polite"></div>
+        <footer class="list-footer"><span id="list-summary">0 tasks</span><span>Every step counts <span class="footer-sparkle">✦</span></span></footer>
+      </section>
+      <p class="app-note">A calm space to get things done. <span>✳</span></p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
